@@ -55,42 +55,27 @@ in at least 4 of 5 tries.
 
 ---
 
-## 4. Something about your chunks
+## 4. There are no isolated fragments
 
-<!-- YOU WRITE THIS ONE.
-
-     How would you know if your chunks were the right size? Name something
-     countable or observable.
-
-     Examples of the right shape — don't copy these, they should come from
-     what you actually saw in Milestone 3:
-       - "At least 4 of 5 sampled chunks read as a complete thought, with no
-          sentence cut in half at either end."
-       - "No chunk is shorter than 200 characters, since anything below that
-          in my corpus turned out to be a heading with no content under it." -->
-
-
+No chunk is shorter than around 150 characters. 
 
 **Why this target:**
+Every document in campus_life is between 183 and 554 characters, and the chunk size is 800, so the baseline chunker produces 88 chunks from 88 documents. Nothing gets split. Each document also starts with a short title line followed by a blank line. If I switch to a paragraph or sentence splitter, that title becomes its own 15 to 30 character chunk with no facts in it, and it would still be retrieved on a keyword match. 150 characters is just below the shortest real post (183), so a chunk under it is a fragment and not a short post.
 
 
 
 ---
 
-## 5. Your choice
+## 5. The documents that the system cites contain the expects phrase.
 
-<!-- YOU WRITE THIS ONE TOO.
-
-     Pick something you actually care about getting right. It could be about
-     speed, about refusals, about a particular kind of question your corpus
-     handles badly, about source attribution being correct rather than merely
-     present — anything, as long as it names a number or an observable
-     outcome. -->
-
+For all 5 of my test questions, at least one document the answer cites has text
+containing that question's `expects` phrase (a case-insensitive substring
+check). `expects` holds the first fact of each answer, so this checks the
+citation points at the right post, not that the whole answer is complete.
 
 
 **Why this target:**
-
+Every answer in my corpus lives in one short post, so the cited source should be the post that holds the fact, and it should hold for all 5 questions and not just 4. Criterion 1 only asks whether the right chunk was retrieved. This one asks whether the system points the student at it. A wrong citation is worse than a missing one, because a student would trust it. 
 
 
 ---
