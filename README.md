@@ -112,14 +112,14 @@ Laundry costs $1.75 wash, $1.75 dry, app-based. On noise: moderate; the building
 
 ## Sample Answer
 
-<!-- One complete question and answer, pasted as text, with the source line
-     visible. Milestone 4. -->
-
-**Question:**
+**Question:** How many washers and dryers does Calder Annexe have, and when is the best time to do laundry there?
 
 **Answer:**
 
 ```
+Calder Annexe has eight washers and six dryers, and the best time to do laundry there is Tuesday or Wednesday morning.
+
+Source: housing_calder_annexe_laundry.txt
 ```
 
 **My relevance cutoff:**
