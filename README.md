@@ -21,11 +21,9 @@
 
 ## What This Does
 
-<!-- Three or four sentences. Which corpus you picked, and the kinds of
-     questions your system answers. Write it for someone who has never seen
-     this repo.
+The Unofficial Guide is a retrieval-augmented question-answering system built on campus_life, a corpus of 88 short posts about student life at a university — dining halls, dorms, courses, and the administrative rules nobody explains properly. Ask it something concrete a student would ask a peer, like how many washers and dryers a specific dorm's laundry room has or when the meal plan tier can be changed, and it retrieves the one post that actually answers it, then generates a short answer grounded in that post's text, naming the file it came from. If a question falls outside anything the corpus covers, a relevance gate refuses rather than guessing.
 
-     Milestone 5. -->
+
 
 ## Chunking Strategy
 
@@ -135,14 +133,9 @@ In-corpus best distance		Out-of-scope best distance
 
 ## How I Used AI
 
-<!-- Two specific moments. For each: what you asked for, what came back, and
-     what you changed about it.
+I used Claude to verify my work. For example, when finding a good size for each chunk, my initial thought was aroudn 100 characters to account for the texts that I had read in context of the 5 questions I decided earlier. However, Claude explained that a ceiling of 600 characters (or pretty much 1 file) was a better way to chunk since 100 characters would result in cutoff texts or just titles of documents with no reral content. 
 
-     "I asked Claude to write the chunking function from my notes. It ignored
-     the overlap, so I added that myself" is the level of detail we're after.
-     "I used AI to help me code" is not.
-
-     Milestone 5. -->
+Similarly, when crafting the questions in the earlier step. My questions were a bit too simple and did not effectively challenge the AI. I used Claude to solidify my questions so they could better determine the quality of the chunking strategy designed later. 
 
 **1.**
 
