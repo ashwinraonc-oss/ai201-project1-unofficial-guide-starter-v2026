@@ -168,15 +168,42 @@ Similarly, when crafting the questions in the earlier step. My questions were a 
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1. Retrieved chunk contains the answer | 4 of 5 |  |  |  |  |
-| 2. Every answer names a source | 5 of 5 |  |  |  |  |
-| 3. Gate stops out-of-corpus questions | 4 of 5 |  |  |  |  |
+| 1. Retrieved chunk contains the answer | 4 of 5 | 4/5 | 5/5 | 4/5 | MET |
+| 2. Every answer names a source | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
 | 4. | | | | | |
 | 5. | | | | | |
 
-<!-- Underneath, paste the REAL output for each criterion from one of your
-     runs — the actual text your system produced, not a description of it.
-     Name the file and function that produced it. -->
+Note on criterion 1: the scorer marked the "quiet place to study" question as a fail in runs 1 and 3 only because the model wrote "2 am" while `expects` was "until 2am". The retrieved chunks (e.g. `housing_innisfree_hall_noise.txt`) contain the answer in all three runs, so those two fails are scorer false negatives, not retrieval misses. The table reports the scorer's raw numbers.
+
+**Criterion 1** — produced by `store.py::search` (retrieval), logged by `run_eval.py::main`. Study question, run 1:
+
+```
+Best distance: 0.5435 (passed the gate)
+Sources retrieved: housing_aldridge_hall_noise.txt, housing_fenwick_court_noise.txt, housing_innisfree_hall_noise.txt, housing_old_brewhouse_noise.txt, housing_tamsin_court_noise.txt
+```
+
+The retrieved `housing_innisfree_hall_noise.txt` line 5 reads: "If you're someone who needs quiet to work, the library is open until 2am during term and that's what most people in this building end up doing."
+
+**Criterion 2** — produced by `generate.py::answer_from_chunks`. Calder Annexe, run 1:
+
+```
+Calder Annexe has eight washers and six dryers for the building. The best time to do laundry there is Tuesday or Wednesday morning. 
+
+Source: housing_calder_annexe_laundry.txt
+```
+
+**Criterion 3** — produced by `run_eval.py::check_out_of_scope`, cutoff 0.6. Refused 5 of 5:
+
+```
+| What is the capital of Mongolia? | 0.825 | refused |
+| How do I change the oil in a diesel engine? | 0.934 | refused |
+| Who won the 1994 World Cup? | 0.886 | refused |
+| What is the recommended dosage of ibuprofen for a headache? | 0.844 | refused |
+| How do I write a for loop in Rust? | 0.896 | refused |
+```
+
+Full log: `results/run_2026-09-23_2102.md`.
 
 ## Verdicts
 
