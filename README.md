@@ -171,8 +171,8 @@ Similarly, when crafting the questions in the earlier step. My questions were a 
 | 1. Retrieved chunk contains the answer | 4 of 5 | 4/5 | 5/5 | 4/5 | MET |
 | 2. Every answer names a source | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
 | 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
-| 4. | | | | | |
-| 5. | | | | | |
+| 4. No chunk shorter than 150 characters | 0 fragments | 0 | 0 | 0 | MET |
+| 5. Cited documents contain the expects phrase | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
 
 Note on criterion 1: the scorer marked the "quiet place to study" question as a fail in runs 1 and 3 only because the model wrote "2 am" while `expects` was "until 2am". The retrieved chunks (e.g. `housing_innisfree_hall_noise.txt`) contain the answer in all three runs, so those two fails are scorer false negatives, not retrieval misses. The table reports the scorer's raw numbers.
 
@@ -218,11 +218,11 @@ Full log: `results/run_2026-09-23_2102.md`.
 
 | # | Criterion | Verdict | How I decided |
 |---|---|---|---|
-| 1 |  |  |  |
-| 2 |  |  |  |
-| 3 |  |  |  |
-| 4 |  |  |  |
-| 5 |  |  |  |
+| 1 | Retrieved chunks contain the answer (4 of 5) | MET | Scorer gave 4/5, 5/5, 4/5, so every run reached the target. The two 4/5 runs were the study question failing on "2 am" vs "2am" wording; the answer was in the retrieved chunks each time, so retrieval itself held at 5/5. |
+| 2 | Every answer names a source (5 of 5) | MET | I read all 15 answers (5 questions x 3 runs) and each one names at least one source file, 5/5 in every run. |
+| 3 | Gate stops out-of-corpus questions (4 of 5) | MET | Gate refused 5 of 5 (best distances 0.825 to 0.934 against the 0.6 cutoff). Not close: the nearest out-of-scope distance is well above the cutoff. |
+| 4 | No chunk shorter than 150 characters | MET | Chunker produced 88 chunks, shortest 178 characters, 0 under 150. Deterministic, so the same in all runs. |
+| 5 | Cited documents contain the expects phrase (5 of 5) | MET | For all 5 questions, a cited source file contains the `expects` phrase (case-insensitive substring check against the corpus files). Holds in all 3 runs since the cited sources were the same each time. |
 
 ## Diagnoses
 
