@@ -18,8 +18,11 @@ rest of the project if they were wrong:
 """
 
 import os
+import re
 import shutil
 from dataclasses import dataclass
+
+from rank_bm25 import BM25Okapi
 
 # Must be set BEFORE chromadb is imported. Without it, some Chroma versions
 # print "Failed to send telemetry event ..." on every single call — which looks
@@ -178,6 +181,14 @@ def build_index(
     return len(chunks)
 
 
+def _tokenize(text: str) -> list[str]:
+    """Lowercase word tokens for BM25. Good enough for short campus posts."""
+    return re.findall(r"[a-z0-9]+", text.lower())
+
+
+_RRF_K = 60  # standard reciprocal-rank-fusion constant
+
+
 def search(
     question: str,
     top_k: int | None = None,
@@ -185,9 +196,28 @@ def search(
     variant: str = "default",
 ) -> list[Result]:
     """
-    Retrieve the chunks closest in meaning to a question.
+    Retrieve the chunks most relevant to a question, combining semantic
+    (vector) search with keyword (BM25) search.
 
-    Returns them nearest-first, each with its distance.
+    Semantic-only search can be pulled off course by chunks that are close in
+    *meaning* but don't share the question's exact terms — e.g. "How often
+    does the campus shuttle run on weekends?" pulled course-workload chunks
+    into the top 5 purely because they're all "campus life" topics. BM25
+    scores chunks on the literal words the question uses ("shuttle",
+    "weekends"), which keyword-free semantic search glides past. Combining
+    the two catches cases either one misses alone.
+
+    The two rankings are combined with reciprocal-rank fusion (RRF): each
+    chunk's fused score is the sum, across the two rankers, of
+    1 / (_RRF_K + its rank in that ranker). RRF works directly on ranks
+    rather than raw scores, so it needs no reconciling of cosine distance
+    (0-2, lower better) with BM25 score (unbounded, higher better).
+
+    Every returned Result still carries its original SEMANTIC distance,
+    unchanged — the relevance gate's threshold is calibrated against that
+    number, and fusing it away would make the 0.6 cutoff meaningless.
+
+    Returns the fused top_k, nearest-first by fused rank.
     """
     top_k = top_k or config.TOP_K
     name = config.collection_name(corpus, variant)
@@ -199,21 +229,45 @@ def search(
             f"No index called '{name}'. Run `python app.py index` first."
         ) from exc
 
+    count = collection.count()
+    if count == 0:
+        return []
+
+    # Pull back the WHOLE collection, not just top_k, so BM25 can surface
+    # chunks the vector search alone would have left out entirely. Cheap at
+    # campus_life's size (dozens to low hundreds of chunks); a much larger
+    # corpus would want a candidate-pool cutoff instead of the full set.
     raw = collection.query(
         query_embeddings=embed([question]),
-        n_results=min(top_k, collection.count()),
+        n_results=count,
     )
 
+    texts = raw["documents"][0]
+    metas = raw["metadatas"][0]
+    distances = raw["distances"][0]
+
+    # Chroma already returns nearest-first, so a chunk's semantic rank is
+    # just its position in these lists.
+    bm25 = BM25Okapi([_tokenize(t) for t in texts])
+    bm25_scores = bm25.get_scores(_tokenize(question))
+    bm25_order = sorted(range(len(texts)), key=lambda i: bm25_scores[i], reverse=True)
+    bm25_rank = {i: rank for rank, i in enumerate(bm25_order)}
+
+    fused = [
+        (i, 1 / (_RRF_K + i) + 1 / (_RRF_K + bm25_rank[i]))
+        for i in range(len(texts))
+    ]
+    fused.sort(key=lambda pair: pair[1], reverse=True)
+
     results: list[Result] = []
-    for text, meta, distance in zip(
-        raw["documents"][0], raw["metadatas"][0], raw["distances"][0]
-    ):
+    for i, _score in fused[:top_k]:
+        meta = metas[i]
         results.append(
             Result(
-                text=text,
+                text=texts[i],
                 source=str(meta.get("source", "unknown")),
                 label=f"{meta.get('source', 'unknown')}#{meta.get('index', 0)}",
-                distance=float(distance),
+                distance=float(distances[i]),
                 produced_by=str(meta.get("produced_by", "unknown")),
             )
         )

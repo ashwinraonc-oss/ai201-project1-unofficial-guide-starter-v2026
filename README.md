@@ -260,10 +260,11 @@ Criterion 2 (every answer names a source) and criterion 5 (cited documents conta
 
 **What I changed:**
 
+`store.py::search` now combines vector search with keyword search instead of using vector distance alone. It queries the full collection for both rankings, then fuses them with reciprocal-rank fusion: each chunk's fused score is `1/(60 + semantic_rank) + 1/(60 + bm25_rank)`. The top-k by fused score is returned. Each `Result` still carries its original semantic distance, unchanged, so the relevance gate's 0.6 cutoff still means what it meant before.
+
 **Why I picked it:**
 
-<!-- Connect it to a specific diagnosis above in one sentence. If you can't,
-     you picked a fix because it sounded impressive. -->
+The "Diagnoses" section above already caught the mechanism: the campus-shuttle question retrieved `course_econ_101_workload.txt` and `course_stat_150_workload.txt` alongside the correct `transit_shuttle.txt` — chunks that are close in *meaning* (all "campus life" topics) but share none of the question's actual words ("shuttle", "weekends"). Semantic-only search couldn't tell those apart from the real answer; BM25 can, because it scores on the literal terms. I checked the fix with `python app.py retrieve` before spending any model calls: the two workload chunks dropped out of the top 5 entirely, and `transit_shuttle.txt` moved to rank 1 at distance 0.408 — same distance as before (BM25 doesn't touch the reported distance, only which chunks get chosen and how they're ordered). I also reran all 5 in-scope and 5 out-of-scope questions through retrieval only: every in-scope question still passes the gate and every out-of-scope one is still refused, so the fusion didn't quietly break criterion 3 on the way to fixing precision.
 
 ### Run Log — After
 
@@ -272,20 +273,29 @@ Criterion 2 (every answer names a source) and criterion 5 (cited documents conta
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1. Retrieved chunk contains the answer | 4 of 5 |  |  |  |  |
-| 2. Every answer names a source | 5 of 5 |  |  |  |  |
-| 3. Gate stops out-of-corpus questions | 4 of 5 |  |  |  |  |
-| 4. | | | | | |
-| 5. | | | | | |
+| 1. Retrieved chunk contains the answer | 4 of 5 | 5/5 | 4/5 | 4/5 | MET |
+| 2. Every answer names a source | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 4. No chunk shorter than 150 characters | 0 fragments | 0 | 0 | 0 | MET |
+| 5. Cited documents contain the expects phrase | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
+
+Full log: `results/run_2026-09-29_1647_after.md`.
 
 **Did it help?**
 
-<!-- Say plainly whether it did, and how you know. If it made things worse,
-     say that — a change that backfired, honestly reported, earns full credit
-     and is more interesting than one that worked. What matters is that you can
-     tell.
+No, not on any criterion that's actually measured. All five criteria were MET before and all five are still MET after — nothing moved from MISSED to MET, and the pass/fail totals (13/15 before, 13/15 after) are within noise of each other, still caused by the same "2am" vs "2 am" scorer wording issue on criterion 1, not by retrieval.
 
-     Milestone 4. -->
+It did do exactly what I aimed it at: for the shuttle question, `course_econ_101_workload.txt` and `course_stat_150_workload.txt` — chunks about an unrelated topic that only shared a broad "campus life" vibe — dropped out of the top 5 entirely, replaced by chunks at least nominally closer to the question's actual words. 
+
+BM25 introduced new noise into three of the other four questions, on pure keyword coincidence rather than real relevance:
+
+- **Kestrel Commons dining question** picked up `transit_walking.txt` — a doc about walking times across campus that happens to say "Morrow House to **Kestrel Commons**: 7 minutes." BM25 matched the proper noun with no idea it wasn't about dining.
+- **Quiet-study question** picked up `money_jobs.txt`, which talks about on-campus jobs at the "**Library** desk" and whether you "can **study** during the shift" — real words shared with the question, zero relevance to where to study quietly. It also lost `housing_innisfree_hall_noise.txt` and `housing_old_brewhouse_noise.txt` out of the top 5, which had been there before.
+- **Meal plan question** picked up `dining_halden_hall.txt` and `dining_kestrel_commons.txt`, both of which mention "one **meal swipe**" in their pricing line — again a real keyword match, not a real answer to a question about changing meal plan *tiers*. It lost `admin_dining_dollars.txt` and `admin_withdrawal_deadline.txt`, which are both administrative-policy documents closer in kind to the actual answer, out of the top 5.
+
+None of this shows up in the numbers because every question's correct chunk still made the fused top 5 and the model still answered correctly from it — the criteria as written only ask "is the answer somewhere in the top 5," not "is the top 5 clean." That's the same gap I flagged in the Diagnoses section when I said criterion 1's top-5 bar was too easy to move the needle. This result is a concrete demonstration of that gap: a real change to the retrieval mechanism happened, in both directions, and the current criteria are blind to all of it.
+
+If I were continuing this, I'd either drop BM25's weight relative to semantic search (right now they're fused 50/50) or restrict BM25 matching to distinctive terms rather than any shared word, so it can't be won by a stray proper noun or a generic word like "study" or "meal."
 
 ## What's Still Broken
 
