@@ -139,10 +139,6 @@ Similarly, when crafting the questions in the earlier step. My questions were a 
 
 I was a bit stumped in finding changes for my project since all of my tests passed. As a result, I used AI to give me a list of possible fixes I could incorporate, then prompted it to guide me through what each fix was and why exactly it would make my design better. 
 
-**1.**
-
-**2.**
-
 <!-- ── Stretch features ─────────────────────────────────────────────────────
      Doing one? Say so here BEFORE you start. A feature this README never
      claims earns nothing.
