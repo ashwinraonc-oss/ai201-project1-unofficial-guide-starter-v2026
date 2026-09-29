@@ -137,6 +137,8 @@ I used Claude to verify my work. For example, when finding a good size for each 
 
 Similarly, when crafting the questions in the earlier step. My questions were a bit too simple and did not effectively challenge the AI. I used Claude to solidify my questions so they could better determine the quality of the chunking strategy designed later. 
 
+I was a bit stumped in finding changes for my project since all of my tests passed. As a result, I used AI to give me a list of possible fixes I could incorporate, then prompted it to guide me through what each fix was and why exactly it would make my design better. 
+
 **1.**
 
 **2.**
@@ -226,24 +228,6 @@ Full log: `results/run_2026-09-23_2102.md`.
 
 ## Diagnoses
 
-<!-- For each miss: which stage caused it, and how. The stage alone isn't
-     enough — you need the mechanism.
-
-     Not a diagnosis: "Question 3 didn't work."
-     A diagnosis:     "Question 3 asks about laundry costs. The answer is in
-                       one sentence that got split across two chunks, so
-                       neither chunk on its own contains it."
-
-     The five stages: loading → chunking → embedding → retrieval → generation.
-
-     Look for a pattern. If three misses all ask about numbers, that's one
-     problem, not three.
-
-     Missed nothing? Say so, then say honestly whether your targets were set
-     low, and which one you'd tighten and to what.
-
-     Milestone 3. -->
-
 I missed nothing. All five criteria were MET on every run. That's not evidence the system is excellent — it mostly means I set targets my own setup couldn't fail, since I wrote the questions, the `expects` phrases, and the out-of-scope list myself, already knowing what the corpus contained.
 
 Three of the five were too easy:
@@ -297,19 +281,15 @@ None of this shows up in the numbers because every question's correct chunk stil
 
 If I were continuing this, I'd either drop BM25's weight relative to semantic search (right now they're fused 50/50) or restrict BM25 matching to distinctive terms rather than any shared word, so it can't be won by a stray proper noun or a generic word like "study" or "meal."
 
-## What's Still Broken
+## What's Still Broken 
 
-<!-- For each criterion still missed after your fix: what you'd do about it,
-     and why you stopped where you did.
+- **BM25 makes retrieval noisier for questions it wasn't meant to help.** The Improvement section above shows three of four unfixed questions picked up irrelevant chunks purely on keyword coincidence — a proper noun (`transit_walking.txt` mentioning "Kestrel Commons" in passing), a generic word (`money_jobs.txt` sharing "study" and "library"), a pricing phrase (`dining_halden_hall.txt` and `dining_kestrel_commons.txt` both saying "one meal swipe"). The fix is to weight semantic rank more heavily than BM25 rank in the fusion (right now they're equal, `1/(60+semantic_rank) + 1/(60+bm25_rank)`), or to only let BM25 count a match on terms with high IDF and a minimum length, so it can't be won by a single shared common word. I stopped at diagnosing this and writing it up rather than fixing it because the assignment for this unit asks for one measured change, not a second untested one layered on top of the first — tuning the fusion weight would need its own before/after comparison to know whether it actually helped rather than just moving the noise somewhere else.
 
-     "I ran out of time" is fine if it's true. Pretending nothing is left is
-     not.
-
-     Milestone 5. -->
+- **The scorer's substring matching is still brittle.** The "2am" vs "2 am" mismatch that produced false-negative fails on the quiet-study question in both the before and after runs is unresolved. `scorer.py` does a case-insensitive substring check on a single `expects` string; it doesn't handle spacing or phrasing variants. I ran out of time to go back and rewrite `questions.py`'s `expects` values as alternatives (e.g. `"2am|2 am"`) and rerun, so the run logs still contain those two known-wrong fails rather than a corrected count.
 
 ## What I'd Do Differently
 
-<!-- Knowing what you know now — which of your five criteria would you write
-     differently, and why?
+- **Criterion 3** ("gate stops out-of-corpus questions," 4 of 5). I'd write the `OUT_OF_SCOPE` list as near-miss questions from the start — things a student might plausibly ask that the corpus just doesn't happen to cover — rather than questions from a different world entirely. As written, this criterion tests that the gate isn't completely broken, not that the 0.6 cutoff is actually in the right place. I noted this in Diagnoses but didn't act on it this unit; next time I'd write the list this way to begin with instead of discovering it after the fact.
 
-     Milestone 5. -->
+- **Criterion 4** ("no chunk shorter than 150 characters"). I'd either drop this criterion for a corpus like `campus_life`, where every document is well over the floor and the chunker's splitting logic never runs, or pair it with a second corpus that actually has long documents so the floor gets exercised. As written it can't fail regardless of chunker quality, which makes it evidence of nothing.
+
