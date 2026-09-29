@@ -244,6 +244,18 @@ Full log: `results/run_2026-09-23_2102.md`.
 
      Milestone 3. -->
 
+I missed nothing. All five criteria were MET on every run. That's not evidence the system is excellent — it mostly means I set targets my own setup couldn't fail, since I wrote the questions, the `expects` phrases, and the out-of-scope list myself, already knowing what the corpus contained.
+
+Three of the five were too easy:
+
+- **Criterion 3 (gate stops out-of-corpus questions).** My five `OUT_OF_SCOPE` questions (capital of Mongolia, oil changes, the 1994 World Cup, ibuprofen dosage, a Rust for-loop) are nothing like campus life topics, so their best distances landed at 0.825–0.934 against a 0.6 cutoff — nowhere near the boundary. That's not a test of the gate, it's a test that the gate isn't broken. I'd tighten it by swapping in near-miss questions that are plausible things a student might ask but that the corpus doesn't cover, e.g. "What's the wifi password for Kestrel Commons?" or "Does the campus shuttle run during finals week?" — topically adjacent, not obviously off-topic — and keep the same 4 of 5 target but measure it against those instead.
+
+- **Criterion 4 (no chunk shorter than 150 characters).** Every document in `campus_life` is 183–554 characters and the chunk size is 800, so the chunker's splitting logic never actually runs — nothing is ever combined or cut. The criterion can't fail with this corpus regardless of chunker quality. I'd tighten it by lowering the chunk size (e.g. to 300) so documents actually get split, or by testing it against a corpus with longer documents, and re-measuring the 150-character floor against that.
+
+- **Criterion 1 (retrieved chunks contain the answer, top-5).** "Somewhere in the top 5 of 5 retrieved chunks" is a low bar when the whole corpus per topic is only 4–5 short documents — most of the corpus for that topic is retrieved every time. I'd tighten this to require the answer in the top-1 or top-2 result specifically, which actually tests ranking quality rather than just recall.
+
+Criterion 2 (every answer names a source) and criterion 5 (cited documents contain the `expects` phrase) I'd leave as is — they're checking something meaningful (that citations exist and point at the right document) and passing them cleanly reflects the prompt design working, not an easy target.
+
 ## The Improvement
 
 **What I changed:**
